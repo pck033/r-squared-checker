@@ -1,4 +1,4 @@
-document.getElementById('calculator-form').addEventListener('submit', function(event) {
+document.getElementById('r-squared-checker').addEventListener('submit', function(event) {
     event.preventDefault();
 
     const xValues = document.getElementById('x-values').value.split(',').map(Number);
