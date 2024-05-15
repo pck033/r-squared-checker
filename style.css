@@ -13,8 +13,10 @@ body {
     text-align: center;
     background-color: #fff;
     padding: 20px;
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 800px;
 }
 
 .input-group {
@@ -22,11 +24,12 @@ body {
 }
 
 input[type="text"] {
-    width: 80%;
+    width: 100%;
     padding: 10px;
     margin-top: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    font-size: 16px;
 }
 
 button {
@@ -47,7 +50,7 @@ button:hover {
     margin-top: 20px;
 }
 
-#equation, #r-squared {
+#equation, #r-squared, #x-values-display, #y-values-display {
     font-size: 18px;
     color: #333;
 }
