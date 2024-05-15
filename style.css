@@ -12,7 +12,7 @@ body {
 .container {
     text-align: center;
     background-color: #fff;
-    padding: 200px;
+    padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 80%;
@@ -20,13 +20,13 @@ body {
 }
 
 .input-group {
-    margin-bottom: 100px;  /* Increase the space between input fields */
+    margin-bottom: 30px;  /* Further increase the space between input fields */
 }
 
 input[type="text"] {
     width: 100%;
     padding: 10px;
-    margin-top: 50px;
+    margin-top: 10px;  /* Add some space above the input fields as well */
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 16px;
@@ -40,6 +40,7 @@ button {
     color: #fff;
     font-size: 16px;
     cursor: pointer;
+    margin-top: 10px;  /* Add some space above the button */
 }
 
 button:hover {
@@ -53,4 +54,5 @@ button:hover {
 #equation, #r-squared, #x-values-display, #y-values-display {
     font-size: 18px;
     color: #333;
+    margin-top: 10px;  /* Add some space above each result text */
 }
