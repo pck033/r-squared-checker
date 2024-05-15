@@ -24,6 +24,6 @@ document.getElementById('calculator-form').addEventListener('submit', function(e
     const ssRes = yValues.reduce((acc, val, i) => acc + Math.pow(val - a * Math.pow(xValues[i], b), 2), 0);
     const rSquared = 1 - (ssRes / ssTot);
 
-    document.getElementById('equation').textContent = `Equation: y = ${a.toFixed(4)} * x^${b.toFixed(4)}`;
+    document.getElementById('equation').textContent = `Equation: y = ${a.toFixed(4)} * ln(x)^${b.toFixed(4)}`;
     document.getElementById('r-squared').textContent = `R-squared: ${rSquared.toFixed(4)}`;
 });
