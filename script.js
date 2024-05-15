@@ -20,6 +20,7 @@ document.getElementById('dataForm').addEventListener('submit', function(event) {
     const meanLogX = mean(logXValues);
     const meanLogY = mean(logYValues);
 
+    // Calculate the total sum of squares (ssTotal) and regression sum of squares (ssReg)
     let ssTotal = 0;
     let ssReg = 0;
     let covariance = 0;
@@ -35,8 +36,9 @@ document.getElementById('dataForm').addEventListener('submit', function(event) {
         ssTotal += yDiff * yDiff;
     }
 
-    // Calculate the correlation coefficient and R-squared
+    // Calculate the correlation coefficient
     const correlation = covariance / Math.sqrt(varianceLogX * varianceLogY);
+    // Calculate R-squared
     const rSquared = correlation * correlation;
 
     // Display the result
