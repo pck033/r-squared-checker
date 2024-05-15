@@ -38,6 +38,8 @@ document.getElementById('calculator-form').addEventListener('submit', function(e
     const rSquared = 1 - (ssRes / ssTot);
 
     // Display the results
+    document.getElementById('x-values-display').textContent = `X Values: ${xValues.join(', ')}`;
+    document.getElementById('y-values-display').textContent = `Y Values: ${yValues.join(', ')}`;
     document.getElementById('equation').textContent = `Equation: y = ${a.toFixed(4)} * x^${b.toFixed(4)}`;
     document.getElementById('r-squared').textContent = `R-squared: ${rSquared.toFixed(4)}`;
 });
