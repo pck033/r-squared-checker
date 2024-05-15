@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R-Squared Calculator for Power Regression</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Power Equation Calculator</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>R-Squared Calculator</h1>
-        <form id="dataForm">
-            <label for="xValues">X Values (comma-separated):</label>
-            <input type="text" id="xValues" required>
-            
-            <label for="yValues">Y Values (comma-separated):</label>
-            <input type="text" id="yValues" required>
-            
+        <h1>Power Equation Calculator</h1>
+        <form id="calculator-form">
+            <label for="x-values">X Values (comma separated):</label>
+            <input type="text" id="x-values" required>
+            <label for="y-values">Y Values (comma separated):</label>
+            <input type="text" id="y-values" required>
             <button type="submit">Calculate</button>
         </form>
-            <p id="rSquaredResult"></p>
-            <p id="powerEquationResult"></p>
+        <div id="results">
+            <h2>Results:</h2>
+            <p id="equation"></p>
+            <p id="r-squared"></p>
         </div>
     </div>
     <script src="script.js"></script>
