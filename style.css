@@ -55,7 +55,7 @@ function plotGraph(xValues, yValues) {
         options: {
             scales: {
                 x: {
-                    type: 'linear',
+                    type: 'logarithmic', // Set x-axis to logarithmic scale
                     position: 'bottom'
                 },
                 y: {
