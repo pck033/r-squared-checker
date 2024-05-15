@@ -1,68 +1,68 @@
-document.getElementById('calculator-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    // Get input values
-    const xValues = document.getElementById('x-values').value.split(',').map(Number);
-    const yValues = document.getElementById('y-values').value.split(',').map(Number);
-
-    // Calculate equation and R-squared value
-    const { equation, rSquared } = calculateEquationAndRSquared(xValues, yValues);
-
-    // Display results
-    document.getElementById('x-values-display').innerText = `X Values: ${xValues.join(', ')}`;
-    document.getElementById('y-values-display').innerText = `Y Values: ${yValues.join(', ')}`;
-    document.getElementById('equation').innerText = `Equation: ${equation}`;
-    document.getElementById('r-squared').innerText = `R-squared: ${rSquared}`;
-
-    // Plot graph
-    plotGraph(xValues, yValues);
-});
-
-function calculateEquationAndRSquared(xValues, yValues) {
-    // Calculate equation (assuming linear regression y = mx + b)
-    const meanX = xValues.reduce((acc, val) => acc + val, 0) / xValues.length;
-    const meanY = yValues.reduce((acc, val) => acc + val, 0) / yValues.length;
-
-    const m = xValues.reduce((acc, val, index) => acc + ((val - meanX) * (yValues[index] - meanY)), 0)
-        / xValues.reduce((acc, val) => acc + Math.pow(val - meanX, 2), 0);
-    const b = meanY - m * meanX;
-
-    const equation = `y = ${m.toFixed(2)}x + ${b.toFixed(2)}`;
-
-    // Calculate R-squared value
-    const yPredicted = xValues.map(x => m * x + b);
-    const ssTotal = yValues.reduce((acc, val) => acc + Math.pow(val - meanY, 2), 0);
-    const ssResidual = yValues.reduce((acc, val, index) => acc + Math.pow(val - yPredicted[index], 2), 0);
-    const rSquared = 1 - (ssResidual / ssTotal);
-
-    return { equation, rSquared };
+/* styles.css */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
 }
 
-function plotGraph(xValues, yValues) {
-    const ctx = document.getElementById('myChart').getContext('2d');
+.container {
+    text-align: center;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 80%;
+    max-width: 800px;
+}
 
-    const chart = new Chart(ctx, {
-        type: 'scatter',
-        data: {
-            datasets: [{
-                label: 'Data Points',
-                data: xValues.map((x, index) => ({ x, y: yValues[index] })),
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                x: {
-                    type: 'logarithmic', // Set x-axis to logarithmic scale
-                    position: 'bottom'
-                },
-                y: {
-                    type: 'linear',
-                    position: 'left'
-                }
-            }
-        }
-    });
+.input-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    background-color: #6c757d;  /* Background color similar to the image */
+    padding: 10px;
+    border-radius: 4px;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+label {
+    color: white;
+    margin-right: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007BFF;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    background-image: linear-gradient(to right, #6a11cb, #2575fc);  /* Gradient background */
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#results {
+    margin-top: 20px;
+}
+
+#equation, #r-squared, #x-values-display, #y-values-display {
+    font-size: 18px;
+    color: #333;
+    margin-top: 10px;
 }
