@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Power Equation Calculator</title>
+    <title>Calculator Form</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Power Equation Calculator</h1>
         <form id="calculator-form">
-            <label for="x-values">X Values (comma separated):</label>
-            <input type="text" id="x-values" required>
-            <label for="y-values">Y Values (comma separated):</label>
-            <input type="text" id="y-values" required>
+            <div class="input-group">
+                <label for="x-values">X Values:</label>
+                <input type="text" id="x-values" name="x-values" placeholder="Enter x values separated by commas">
+            </div>
+            <div class="input-group">
+                <label for="y-values">Y Values:</label>
+                <input type="text" id="y-values" name="y-values" placeholder="Enter y values separated by commas">
+            </div>
             <button type="submit">Calculate</button>
         </form>
         <div id="results">
-            <h2>Results:</h2>
+            <p id="x-values-display"></p>
+            <p id="y-values-display"></p>
             <p id="equation"></p>
             <p id="r-squared"></p>
         </div>
