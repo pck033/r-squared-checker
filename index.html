@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R-Squared Calculator for power regression</title>
+    <title>R-Squared Calculator</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h1>R-Squared Calculator</h1>
         <form id="dataForm">
-            <label for="xValues">X Values (comma-separated):</label>
-            <input type="text" id="xValues" required>
+            <label for="xValues">X Values (space-separated, one per line):</label>
+            <textarea id="xValues" rows="5" required></textarea>
             
-            <label for="yValues">Y Values (comma-separated):</label>
-            <input type="text" id="yValues" required>
+            <label for="yValues">Y Values (space-separated, one per line):</label>
+            <textarea id="yValues" rows="5" required></textarea>
             
             <button type="submit">Calculate R-Squared</button>
         </form>
