@@ -1,43 +1,68 @@
-document.getElementById('dataForm').addEventListener('submit', function(event) {
-    event.preventDefault();
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 20px;
+}
 
-    // Get the input values and split them into arrays of numbers
-    const xValues = document.getElementById('xValues').value.trim().split(/\s+/).map(Number);
-    const yValues = document.getElementById('yValues').value.trim().split(/\s+/).map(Number);
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
 
-    // Check if both arrays have the same length
-    if (xValues.length !== yValues.length) {
-        document.getElementById('result').textContent = 'The number of X and Y values must be the same.';
-        return;
-    }
+h1 {
+    text-align: center;
+    color: #333;
+}
 
-    // Transform both data sets to their natural logarithms
-    const logXValues = xValues.map(x => Math.log(x));
-    const logYValues = yValues.map(y => Math.log(y));
+form {
+    display: flex;
+    flex-direction: column;
+}
 
-    // Calculate the means of the logarithm values
-    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const meanLogX = mean(logXValues);
-    const meanLogY = mean(logYValues);
+label {
+    margin-bottom: 5px;
+    color: #555;
+}
 
-    let covariance = 0;
-    let varianceLogX = 0;
+textarea {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    resize: vertical;
+}
 
-    for (let i = 0; i < logXValues.length; i++) {
-        const xDiff = logXValues[i] - meanLogX;
-        const yDiff = logYValues[i] - meanLogY;
-        covariance += xDiff * yDiff;
-        varianceLogX += xDiff * xDiff;
-    }
+button {
+    padding: 10px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
 
-    // Calculate the slope (b) and intercept (log(a)) of the linear regression on the log-transformed data
-    const slope = covariance / varianceLogX;
-    const intercept = meanLogY - slope * meanLogX;
+button:hover {
+    background-color: #0056b3;
+}
 
-    // Calculate a and b for the power regression equation y = ax^b
-    const a = Math.exp(intercept);
-    const b = slope;
+#result {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 5px;
+}
 
-    // Display the power regression equation
-    document.getElementById('result').textContent = `Power Regression Equation: y = ${a.toFixed(4)} * x^${b.toFixed(4)}`;
-});
+#rSquaredResult,
+#powerEquationResult {
+    margin: 0;
+    padding: 5px 0;
+}
+
+#powerEquationResult {
+    font-weight: bold;
+}
