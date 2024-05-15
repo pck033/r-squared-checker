@@ -1,0 +1,1 @@
+# r-squared-calculator-for-power-regression
