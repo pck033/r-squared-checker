@@ -20,7 +20,7 @@ body {
 }
 
 .input-group {
-    margin-bottom: 25px;  /* Increase the space between input fields */
+    margin-bottom: 100px;  /* Increase the space between input fields */
 }
 
 input[type="text"] {
