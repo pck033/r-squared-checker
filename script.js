@@ -20,8 +20,10 @@ document.getElementById('calculator-form').addEventListener('submit', function(e
     const a = Math.exp((sumLogY - b * sumLogX) / n);
 
     const yMean = yValues.reduce((acc, val) => acc + val, 0) / n;
-    const ssTot = yValues.reduce((acc, val) => acc + Math.pow(val - yMean, 2), 0);
-    const ssRes = yValues.reduce((acc, val, i) => acc + Math.pow(val - a * Math.pow(xValues[i], b), 2), 0);
+
+    // Calculate SSres and SStot using natural logarithms
+    const ssTot = yValues.reduce((acc, val) => acc + Math.pow(Math.log(val) - Math.log(yMean), 2), 0);
+    const ssRes = yValues.reduce((acc, val, i) => acc + Math.pow(Math.log(val) - Math.log(a) - b * Math.log(xValues[i]), 2), 0);
     const rSquared = 1 - (ssRes / ssTot);
 
     document.getElementById('equation').textContent = `Equation: y = ${a.toFixed(4)} * ln(x)^${b.toFixed(4)}`;
