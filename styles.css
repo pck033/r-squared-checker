@@ -29,6 +29,7 @@ h2.title {
 .input-group {
     display: flex;
     align-items: center;
+    text-align: center;
     margin-bottom: 15px;
     background-color: #063352;  /* Background color similar to the image */
     padding: 10px;
