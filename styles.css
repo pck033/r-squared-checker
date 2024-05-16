@@ -41,7 +41,7 @@ h2.title {
     margin-right: 10px;
     display: inline-block; /* Align labels in the same line */
     font-size: 14px; /* Reduced font size */
-    width: 150px; /* Adjust width as needed */
+    width: 50px; /* Adjust width as needed */
 }
 
 input[type="text"] {
