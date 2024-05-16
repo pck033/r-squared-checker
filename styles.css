@@ -20,7 +20,7 @@ body {
     max-width: 800px;
 }
 
-.title {
+h2.title {
     font-size: 24px;
     color: #063352;
     text-align: center;
