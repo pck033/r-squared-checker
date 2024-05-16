@@ -20,6 +20,14 @@ body {
     max-width: 800px;
 }
 
+.title {
+    font-size: 24px;
+    color: #063352;
+    text-align: center;
+   margin-top: 5px
+
+}
+
 .input-group {
     display: flex;
     align-items: center;
@@ -31,15 +39,14 @@ body {
 
 .input-group label {
     color: white;
-    margin-right: 10px;
     display: inline-block; /* Align labels in the same line */
-    font-size: 14px; /* Reduced font size */
-    width: 250px; /* Adjust width as needed */
-    text-align: right;
+    font-size: 16px; /* Reduced font size */
+    width: 150px; /* Adjust width as needed */
+    text-align: center;
 }
 
 input[type="text"] {
-    width: calc(100% - 260px); /* Adjust width based on label width */
+    width: calc(100% - 100px); /* Adjust width based on label width */
     padding: 10px;
     border: none;
     border-radius: 4px;
