@@ -40,7 +40,7 @@ h2.title {
     margin-right: 10px;
     display: inline-block; /* Align labels in the same line */
     font-size: 14px; /* Reduced font size */
-    width: 100px; /* Adjust width as needed */
+    width: 120px; /* Adjust width as needed */
 }
 
 input[type="text"] {
