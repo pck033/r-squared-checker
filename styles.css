@@ -1,78 +1,19 @@
-/* styles.css */
-
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
-}
-
-.container {
-    text-align: center;
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 800px;
-}
-
-h2.title {
-    color: #063352;
-    text-align: center;
-    margin-top: 5px;
-}
-
-.input-group {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    background-color: #063352;  /* Background color similar to the image */
-    padding: 10px;
-    border-radius: 4px;
-}
-
-.input-group label {
-    color: white;
-    margin-right: 10px;
-    display: inline-block; /* Align labels in the same line */
-    font-size: 14px; /* Reduced font size */
-    width: 150px; /* Adjust width as needed */
-}
-
-input[type="text"] {
-    width: 100%;
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-}
-
-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    background-color: #007BFF;
-    color: #fff;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 10px;
-    background-image: linear-gradient(to right, #063352, #2575fc);  /* Gradient background */
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-#results {
-    margin-top: 20px;
-}
-
-#equation, #r-squared, #x-values-display, #y-values-display {
-    font-size: 18px;
-    color: #333;
-    margin-top: 10px;
-}
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        text-align: center;
+        padding: 8px;
+        border: 1px solid #ddd;
+    }
+    th {
+        background-color: #f4f4f4;
+    }
+    input[type="number"] {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+</style>
