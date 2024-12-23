@@ -1,3 +1,4 @@
+<script>
 document.getElementById('calculate').addEventListener('click', function () {
     const textarea = document.getElementById('excel-data');
     const tableBody = document.querySelector('#data-table tbody');
@@ -68,12 +69,4 @@ document.getElementById('calculate').addEventListener('click', function () {
     const ssTot = lnYValues.reduce((acc, val) => acc + Math.pow(val - logYMean, 2), 0);
 
     // Calculate the residual sum of squares (SSres)
-    const ssRes = lnYValues.reduce((acc, val, i) => acc + Math.pow(val - (Math.log(a) + b * lnXValues[i]), 2), 0);
-
-    // Calculate the R-squared value
-    const rSquared = 1 - (ssRes / ssTot);
-
-    // Display the results
-    document.getElementById('equation').textContent = `Equation: y = ${a.toFixed(4)} * x^${b.toFixed(4)}`;
-    document.getElementById('r-squared').textContent = `R-squared: ${rSquared.toFixed(4)}`;
-});
+    const ssRes = lnYValues.reduce((acc, val, i) => acc + Math.pow(val - (Math.log(a) + b * lnX
