@@ -1,63 +1,356 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Paste and Regression</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin-bottom: 20px;
-            font-family: monospace;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 14px; /* Smaller font size for table */
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        #results {
-            margin-top: 20px;
-            text-align: center; /* Center-align results */
-        }
-        #results p {
-            margin: 5px 0;
-            font-size: 16px; /* Adjust font size for results */
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R² Checker — Power Regression</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0F243E; --blue:#1F4E79; --input:#DDEBF7; --line:#8EA9C1;
+  --red-bg:#F8CBAD; --red:#9C0006; --green:#006100; --green-l:#A9D08E;
+  --text:#1a1a1a; --muted:#595959; --bg:#ffffff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 "Sarabun",Tahoma,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;font-weight:600;margin:0 0 2px}
+.legend{font-size:13px;color:var(--muted);margin-bottom:18px;display:flex;gap:14px;flex-wrap:wrap}
+.sw{display:inline-block;width:12px;height:12px;border:1px solid var(--line);vertical-align:-1px;margin-right:4px}
+table{border-collapse:collapse}
+th,td{border:1px solid var(--line);padding:0 8px;height:28px;white-space:nowrap}
+th{background:var(--navy);color:#fff;font-weight:600;font-size:14px;text-align:center}
+td.lock{background:var(--blue);color:#fff}
+td.inp{background:var(--input);padding:0}
+td.inp input{width:100%;height:27px;border:0;background:transparent;font:inherit;padding:0 8px;outline:none}
+td.inp input:focus{background:#fff;box-shadow:inset 0 0 0 2px var(--blue)}
+td.num,td.num input{text-align:right}
+td.bad,td.bad input{background:var(--red-bg)!important;color:var(--red)!important}
+.top{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.summary td.lbl{font-weight:600;min-width:70px}
+.summary td.v{min-width:150px;text-align:right}
+.summary td.big{font-size:20px;font-weight:600}
+.summary td.inp input{text-align:right}
+#status{margin:10px 0 18px;font-weight:600}
+#status.ok{color:var(--green)} #status.warn{color:var(--red)}
+.main{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.grid-wrap{max-height:70vh;overflow:auto;border:1px solid var(--line)}
+.grid{font-size:14px}
+.grid thead th{position:sticky;top:0;z-index:1}
+.grid td.idx{text-align:center;width:52px}
+.grid td.name{width:180px}
+.grid td.xy{width:120px}
+.grid td.yh{width:130px;text-align:right}
+.grid td.st{width:210px}
+.grid td.st.ok{color:var(--green-l)}
+.side{flex:1;min-width:260px;max-width:400px}
+.side table{width:100%}
+.side td{white-space:normal;padding:6px 10px;height:auto;font-size:14px}
+.side td.warn{color:var(--red);font-weight:600}
+.actions{margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid var(--blue);background:#fff;color:var(--blue);border-radius:4px;cursor:pointer}
+button:hover{background:var(--input)}
+.help{margin-top:28px;font-size:14px;max-width:900px}
+.help h2{font-size:17px;margin:18px 0 6px}
+.help ol,.help ul{margin:0;padding-left:22px}
+.note{color:var(--blue);font-weight:600;margin-top:10px}
+.chart-box{margin-top:16px;border:1px solid var(--line)}
+.chart-box .hd{background:var(--navy);color:#fff;font-weight:600;font-size:14px;padding:4px 10px;display:flex;justify-content:space-between;align-items:center}
+.chart-box .hd label{font-weight:400;font-size:13px;cursor:pointer}
+.chart-box .body{position:relative;height:340px;padding:8px}
+.chart-box .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px}
+.chart-box .empty[hidden]{display:none}
+#counter{margin-top:6px}
+footer{margin-top:28px;font-size:12.5px;color:var(--muted);border-top:1px solid #e3e3e3;padding-top:10px}
+footer a{color:var(--muted)}
+</style>
 </head>
 <body>
-    <h1>Excel Paste and Regression Calculator</h1>
-    <p>Copy data from Excel and paste it into the textarea below:</p>
-    <textarea id="excel-data" placeholder="Paste Excel data here..."></textarea>
-    <button id="calculate">Calculate</button>
-    <table id="data-table">
-        <thead>
-            <tr>
-                <th>X Value</th>
-                <th>Y Value</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
+<div class="wrap">
+  <h1>คำนวณค่า R² จากสมการ Power Regression (y = a · x<sup>b</sup>)</h1>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--input)"></span>ช่องสีฟ้าอ่อน = กรอกได้</span>
+    <span><span class="sw" style="background:var(--blue)"></span>ช่องสีน้ำเงิน = ผลคำนวณ</span>
+    <span><span class="sw" style="background:var(--red-bg)"></span>สีแดง = ข้อมูลผิด</span>
+  </div>
+
+  <div class="top">
+    <table class="summary">
+      <tr><th></th><th>คำนวณอัตโนมัติ</th><th>กรอกเอง</th></tr>
+      <tr><td class="lbl">ค่า a</td><td class="lock v" id="aAuto">–</td><td class="inp" id="aManCell"><input id="aMan" inputmode="decimal" autocomplete="off"></td></tr>
+      <tr><td class="lbl">ค่า b</td><td class="lock v" id="bAuto">–</td><td class="inp" id="bManCell"><input id="bMan" inputmode="decimal" autocomplete="off"></td></tr>
+      <tr><td class="lbl">R²</td><td class="lock v big" id="rAuto">–</td><td class="lock v big" id="rMan">–</td></tr>
     </table>
-    <div id="results">
-        <p id="equation"></p>
-        <p id="r-squared"></p>
+    <table class="summary">
+      <tr><th>จำนวนข้อมูลที่ใช้</th></tr>
+      <tr><td class="lock v big" id="nUsed" style="text-align:center">0</td></tr>
+    </table>
+  </div>
+  <div id="status"></div>
+
+  <div class="main">
+    <div>
+      <div class="grid-wrap">
+        <table class="grid">
+          <thead><tr><th>ลำดับ</th><th>ชื่อสถานี</th><th>x</th><th>y</th><th>ŷ (อัตโนมัติ)</th><th>ŷ (กรอกเอง)</th><th>สถานะ</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button id="clear">ล้างข้อมูลทั้งหมด</button>
+        <button id="example">ใส่ข้อมูลตัวอย่าง</button>
+      </div>
     </div>
-    <script src="script.js"></script>
+    <div class="side">
+      <table>
+        <tr><th>คำอธิบาย</th></tr>
+        <tr><td>x = ตัวแปรต้น (แกนนอน) เช่น พื้นที่รับน้ำฝน</td></tr>
+        <tr><td>y = ตัวแปรตาม (แกนตั้ง) เช่น ปริมาณน้ำท่า ปริมาณน้ำนอง ปริมาณตะกอน</td></tr>
+        <tr><td>ŷ = ค่า y ที่คำนวณจากสมการ y = a·x<sup>b</sup> (ใช้ a, b อัตโนมัติ หรือ a, b ที่กรอกเอง)</td></tr>
+        <tr><td class="warn">⚠ อย่ากรอก x กับ y สลับกัน เพราะค่า a, b และ R² จะเปลี่ยนไปทันที</td></tr>
+        <tr><td>วางข้อมูลจาก Excel ได้: คัดลอก 3 คอลัมน์ (ชื่อสถานี, x, y) แล้วคลิกช่องแรกที่ต้องการ กด Ctrl+V</td></tr>
+      </table>
+      <div class="chart-box">
+        <div class="hd"><span>กราฟ</span><label><input type="checkbox" id="logScale"> สเกล log</label></div>
+        <div class="body"><canvas id="chart" role="img" aria-label="กราฟจุดข้อมูล x, y และเส้นสมการ power regression"></canvas><div class="empty" id="chartEmpty">กราฟจะแสดงเมื่อข้อมูลถูกต้องครบ</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="help">
+    <h2>วิธีใช้งาน</h2>
+    <ol>
+      <li>กด "ล้างข้อมูลทั้งหมด" เพื่อลบข้อมูลตัวอย่าง</li>
+      <li>กรอก ชื่อสถานี, x, y ต่อกันตั้งแต่แถวที่ 1 ลงไป (สูงสุด 100 แถว) ห้ามเว้นแถวว่างคั่นกลาง</li>
+      <li>ค่า a, b และ R² ในคอลัมน์ "คำนวณอัตโนมัติ" จะคำนวณให้ทันที</li>
+      <li>ถ้ามีค่า a, b จากแหล่งอื่น ให้กรอกในคอลัมน์ "กรอกเอง" ให้ครบทั้งสองค่า จะได้ R² ของ a, b ชุดนั้นเทียบกัน</li>
+      <li>ตรวจคอลัมน์ "สถานะ" ว่าทุกแถวขึ้น ✓ ใช้ได้</li>
+    </ol>
+    <h2>หลักการคำนวณ</h2>
+    <ul>
+      <li>ใส่ ln ทั้งสองข้างของ y = a·x<sup>b</sup> จะได้เส้นตรง ln y = ln a + b·ln x</li>
+      <li>หา b และ ln a ด้วย least squares บน (ln x, ln y) แล้วแปลงกลับ a = e<sup>ln a</sup> (ปัด a, b เป็นทศนิยม 4 ตำแหน่ง) — ค่าเดียวกับ power trendline ของ Excel</li>
+      <li>R² = 1 − Σ(y − ŷ)² / Σ(y − ȳ)² คำนวณจากค่า y จริง (ŷ = a·x<sup>b</sup>) ใช้สูตรเดียวกันทั้งสองคอลัมน์</li>
+    </ul>
+    <div class="note">หมายเหตุ: ค่า R² นี้จะต่างจากค่าที่ Excel แสดงบนกราฟ trendline ซึ่งคำนวณบน ln x, ln y และ pearson y,ŷ</div>
+    <h2>ข้อควรรู้</h2>
+    <ul>
+      <li>x และ y ต้องเป็นตัวเลขที่มากกว่า 0 (หา ln ของศูนย์หรือค่าติดลบไม่ได้)</li>
+      <li>ข้อมูลต้องต่อกัน ถ้ามีแถวว่างคั่นกลาง แถวนั้นจะขึ้นสีแดงว่า "แถวว่าง (ข้อมูลต้องต่อกัน)"</li>
+      <li>ถ้ามีข้อมูลผิดแม้แต่แถวเดียว จะไม่คำนวณ a, b, R² และ ŷ ทั้งหมด (รวมฝั่งกรอกเอง) จนกว่าจะแก้ให้ถูกต้องทุกแถว</li>
+      <li>ข้อมูลทั้งหมดคำนวณในเบราว์เซอร์ของคุณ ไม่มีการส่งข้อมูลออกไปที่ใด</li>
+    </ul>
+  </div>
+
+  <footer>
+    ที่มา: ฝ่ายวิจัยและอุทกวิทยาประยุกต์ ส่วนอุทกวิทยา สบอ. กรมชลประทาน<br>
+    หากมีข้อสอบถามหรือข้อเสนอแนะ ติดต่อ <a href="mailto:research.hydro@rid.go.th">research.hydro@rid.go.th</a> โทรศัพท์ 0 2241 0953 (ภายใน 2392)
+    <div id="counter" hidden>ผู้ใช้งาน <b id="cUsers">–</b> คน · เปิดใช้งานรวม <b id="cVisits">–</b> ครั้ง</div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const N = 100;
+const OK = "✓ ใช้ได้", GAP = "แถวว่าง (ข้อมูลต้องต่อกัน)";
+const EXAMPLE = [[91.86,29.71],[77.32,30.02],[66.38,26.54],[358.00,82.88],[475.63,126.41],
+  [627.91,89.31],[1135.53,232.98],[5.90,11.52],[151.69,58.77],[265.28,108.83],[25.00,10.76]];
+const $ = id => document.getElementById(id);
+const tbody = $("rows");
+const cells = [];  // cells[r] = {name,x,y,yA,yM,st, tdX, tdY, tdName}
+
+for (let r = 0; r < N; r++) {
+  const tr = document.createElement("tr");
+  tr.innerHTML =
+    `<td class="lock idx">${r + 1}</td>` +
+    `<td class="inp name"><input data-r="${r}" data-c="0" autocomplete="off"></td>` +
+    `<td class="inp num xy"><input data-r="${r}" data-c="1" inputmode="decimal" autocomplete="off"></td>` +
+    `<td class="inp num xy"><input data-r="${r}" data-c="2" inputmode="decimal" autocomplete="off"></td>` +
+    `<td class="lock yh"></td><td class="lock yh"></td><td class="lock st"></td>`;
+  tbody.appendChild(tr);
+  const td = tr.children, inp = tr.querySelectorAll("input");
+  cells.push({name: inp[0], x: inp[1], y: inp[2], tdName: td[1], tdX: td[2], tdY: td[3], yA: td[4], yM: td[5], st: td[6]});
+}
+
+// "1,135.53" -> 1135.53 ; returns NaN if not a clean number
+const num = s => { s = s.trim().replace(/,/g, ""); return s !== "" && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s) ? parseFloat(s) : NaN; };
+const fmt = (v, d) => Number.isFinite(v) ? v.toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d}) : "–";
+const round4 = v => Math.round(v * 1e4) / 1e4;
+
+function rowStatus(r, lastFilled) {
+  const c = cells[r], n = c.name.value.trim(), xs = c.x.value.trim(), ys = c.y.value.trim();
+  if (!n && !xs && !ys) return r < lastFilled ? GAP : "";
+  if (!n) return "ยังไม่กรอกชื่อสถานี";
+  if (!xs) return "ยังไม่กรอก x";
+  const x = num(xs); if (isNaN(x)) return "x ต้องเป็นตัวเลข"; if (x <= 0) return "x ต้องมากกว่า 0";
+  if (!ys) return "ยังไม่กรอก y";
+  const y = num(ys); if (isNaN(y)) return "y ต้องเป็นตัวเลข"; if (y <= 0) return "y ต้องมากกว่า 0";
+  return OK;
+}
+
+function r2(pts, a, b) {
+  const ybar = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  let ssr = 0, sst = 0;
+  for (const [x, y] of pts) { ssr += (y - a * Math.pow(x, b)) ** 2; sst += (y - ybar) ** 2; }
+  return sst > 0 ? 1 - ssr / sst : NaN;
+}
+
+function calc() {
+  let lastFilled = -1;
+  cells.forEach((c, r) => { if (c.name.value.trim() || c.x.value.trim() || c.y.value.trim()) lastFilled = r; });
+
+  let bad = 0; const pts = [], statuses = [];
+  cells.forEach((c, r) => {
+    const s = rowStatus(r, lastFilled); statuses.push(s);
+    if (s && s !== OK) bad++;
+    if (s === OK) pts.push([num(c.x.value), num(c.y.value), r]);
+  });
+  const n = pts.length, ready = bad === 0 && n >= 2;
+
+  // auto a, b from least squares on (ln x, ln y), rounded to 4 dp
+  let aA = NaN, bA = NaN;
+  if (ready) {
+    const X = pts.map(p => Math.log(p[0])), Y = pts.map(p => Math.log(p[1]));
+    const mx = X.reduce((s, v) => s + v, 0) / n, my = Y.reduce((s, v) => s + v, 0) / n;
+    let sxy = 0, sxx = 0;
+    for (let i = 0; i < n; i++) { sxy += (X[i] - mx) * (Y[i] - my); sxx += (X[i] - mx) ** 2; }
+    if (sxx > 0) { const slope = sxy / sxx; bA = round4(slope); aA = round4(Math.exp(my - slope * mx)); }
+  }
+  const aMs = $("aMan").value.trim(), bMs = $("bMan").value.trim();
+  const aM = num(aMs), bM = num(bMs);
+  const aBad = aMs !== "" && (isNaN(aM) || aM <= 0), bBad = bMs !== "" && isNaN(bM);
+  $("aManCell").classList.toggle("bad", aBad);
+  $("bManCell").classList.toggle("bad", bBad);
+  const manualOk = !isNaN(aM) && aM > 0 && !isNaN(bM);
+  const autoOk = ready && Number.isFinite(aA) && Number.isFinite(bA);
+
+  $("aAuto").textContent = fmt(aA, 4);
+  $("bAuto").textContent = fmt(bA, 4);
+  $("rAuto").textContent = autoOk ? fmt(r2(pts, aA, bA), 4) : "–";
+  $("rMan").textContent = ready && manualOk ? fmt(r2(pts, aM, bM), 4) : "–";
+  $("nUsed").textContent = n;
+
+  cells.forEach((c, r) => {
+    const s = statuses[r], ok = s === OK;
+    c.st.textContent = s;
+    c.st.className = "lock st" + (ok ? " ok" : s ? " bad" : "");
+    const gap = s === GAP;
+    c.tdName.classList.toggle("bad", gap);
+    c.tdX.classList.toggle("bad", gap || (c.x.value.trim() !== "" && !(num(c.x.value) > 0)));
+    c.tdY.classList.toggle("bad", gap || (c.y.value.trim() !== "" && !(num(c.y.value) > 0)));
+    const x = num(c.x.value);
+    c.yA.textContent = ok && autoOk ? fmt(aA * Math.pow(x, bA), 2) : "";
+    c.yM.textContent = ok && ready && manualOk ? fmt(aM * Math.pow(x, bM), 2) : "";
+  });
+
+  const st = $("status");
+  let msg, okMsg = false;
+  if (bad > 0) msg = `⚠ มีข้อมูลผิด ${bad} แถว — ยังไม่คำนวณ จนกว่าจะแก้ให้ถูกต้องทั้งหมด`;
+  else if (n < 2) msg = "⚠ ต้องมีข้อมูลที่ถูกต้องอย่างน้อย 2 แถว";
+  else if (aBad || bBad) msg = "⚠ ค่า a ต้องเป็นตัวเลขที่มากกว่า 0 และค่า b ต้องเป็นตัวเลข";
+  else if ((aMs === "") !== (bMs === "")) msg = "⚠ กรอก a, b เองให้ครบทั้งสองค่า";
+  else { msg = "✓ ข้อมูลครบ พร้อมคำนวณ"; okMsg = true; }
+  st.textContent = msg; st.className = okMsg ? "ok" : "warn";
+  drawChart(ready ? pts : [], autoOk ? [aA, bA] : null, ready && manualOk ? [aM, bM] : null);
+}
+
+// paste a block from Excel (tab/newline separated) starting at the focused cell
+tbody.addEventListener("paste", e => {
+  const t = e.target; if (!t.dataset.r) return;
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  if (!/[\t\n]/.test(text.trim())) return;
+  e.preventDefault();
+  const r0 = +t.dataset.r, c0 = +t.dataset.c;
+  text.replace(/\r/g, "").replace(/\n$/, "").split("\n").forEach((line, i) => {
+    const r = r0 + i; if (r >= N) return;
+    line.split("\t").forEach((v, j) => {
+      const c = c0 + j; if (c > 2) return;
+      [cells[r].name, cells[r].x, cells[r].y][c].value = v.trim();
+    });
+  });
+  calc();
+});
+tbody.addEventListener("keydown", e => {
+  const t = e.target; if (!t.dataset.r || e.key !== "Enter") return;
+  e.preventDefault();
+  const r = +t.dataset.r + (e.shiftKey ? -1 : 1);
+  if (r >= 0 && r < N) [cells[r].name, cells[r].x, cells[r].y][+t.dataset.c].focus();
+});
+document.addEventListener("input", calc);
+
+function fill(data) {
+  cells.forEach(c => { c.name.value = c.x.value = c.y.value = ""; });
+  data.forEach(([x, y], i) => { cells[i].name.value = `ตัวอย่าง ${i + 1}`; cells[i].x.value = x; cells[i].y.value = y; });
+  $("aMan").value = $("bMan").value = "";
+  calc();
+}
+$("clear").onclick = () => { if (confirm("ล้างข้อมูลทั้งหมด?")) fill([]); };
+$("example").onclick = () => fill(EXAMPLE);
+// ---- chart ----
+let chart = null, lastArgs = [[], null, null];
+const C_PT = "#404040", C_AUTO = "#2E75B6", C_MAN = "#C55A11";
+function curve(a, b, xmin, xmax, log) {
+  const out = [];
+  for (let i = 0; i <= 120; i++) {
+    const t = i / 120;
+    const x = log ? Math.exp(Math.log(xmin) + t * (Math.log(xmax) - Math.log(xmin))) : xmin + t * (xmax - xmin);
+    out.push({x, y: a * Math.pow(x, b)});
+  }
+  return out;
+}
+function drawChart(pts, auto, man) {
+  lastArgs = [pts, auto, man];
+  if (typeof Chart === "undefined") return;
+  const empty = $("chartEmpty"), log = $("logScale").checked;
+  empty.hidden = pts.length > 0;
+  $("chart").style.visibility = pts.length ? "visible" : "hidden";
+  const xs = pts.map(p => p[0]), xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const eq = (ab, r) => `y = ${ab[0].toFixed(4)}·x^${ab[1].toFixed(4)}`;
+  const ds = [{type: "scatter", label: "ข้อมูล (x, y)", data: pts.map(p => ({x: p[0], y: p[1], r: p[2]})),
+               backgroundColor: C_PT, borderColor: "#fff", borderWidth: 1.5, pointRadius: 5, pointHoverRadius: 7, order: 0}];
+  if (pts.length && auto) ds.push({type: "line", label: `อัตโนมัติ: ${eq(auto)}`, data: curve(auto[0], auto[1], xmin, xmax, log),
+               borderColor: C_AUTO, borderWidth: 2, pointStyle: "line", pointRadius: 0, pointHoverRadius: 0, tension: 0, order: 1});
+  if (pts.length && man) ds.push({type: "line", label: `กรอกเอง: ${eq(man)}`, data: curve(man[0], man[1], xmin, xmax, log),
+               borderColor: C_MAN, borderWidth: 2, borderDash: [6, 4], pointStyle: "line", pointRadius: 0, pointHoverRadius: 0, tension: 0, order: 2});
+  const scale = t => ({type: log ? "logarithmic" : "linear", title: {display: true, text: t, color: "#595959"},
+               grid: {color: "#eeeeee"}, ticks: {color: "#595959"}, border: {color: "#cccccc"}});
+  if (chart) { chart.data.datasets = ds; chart.options.scales.x = scale("x"); chart.options.scales.y = scale("y"); chart.update("none"); return; }
+  chart = new Chart($("chart"), {
+    data: {datasets: ds},
+    options: {
+      maintainAspectRatio: false, animation: false, parsing: true,
+      scales: {x: scale("x"), y: scale("y")},
+      interaction: {mode: "nearest", intersect: false},
+      plugins: {
+        legend: {position: "bottom", labels: {usePointStyle: true, boxWidth: 24, color: "#1a1a1a", font: {family: "Sarabun", size: 12}}},
+        tooltip: {filter: i => i.dataset.type === "scatter",
+          callbacks: {label: i => {
+            const r = i.raw.r, name = cells[r].name.value.trim();
+            return `${name}: x = ${i.raw.x.toLocaleString("en-US")}, y = ${i.raw.y.toLocaleString("en-US")}`;
+          }}}
+      }
+    }
+  });
+}
+$("logScale").addEventListener("change", () => drawChart(...lastArgs));
+
+// ---- usage counter (abacus.jasoncameron.dev, no personal data sent) ----
+(function () {
+  if (location.protocol === "file:") return;           // don't count local test opens
+  const base = "https://abacus.jasoncameron.dev", ns = "pck033-r-squared-checker";
+  let seen = false; try { seen = localStorage.getItem("rsc-seen") === "1"; } catch (e) {}
+  const get = (act, key) => fetch(`${base}/${act}/${ns}/${key}`).then(r => r.ok ? r.json() : Promise.reject()).then(j => j.value);
+  Promise.all([get("hit", "visits"), get(seen ? "get" : "hit", "users")]).then(([v, u]) => {
+    try { localStorage.setItem("rsc-seen", "1"); } catch (e) {}
+    $("cVisits").textContent = v.toLocaleString("en-US");
+    $("cUsers").textContent = u.toLocaleString("en-US");
+    $("counter").hidden = false;
+  }).catch(() => {});
+})();
+
+fill(EXAMPLE);
+</script>
 </body>
 </html>
