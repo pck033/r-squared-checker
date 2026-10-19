@@ -49,13 +49,14 @@ td.bad,td.bad input{background:var(--red-bg)!important;color:var(--red)!importan
 .side table{width:100%}
 .side td{white-space:normal;padding:6px 10px;height:auto;font-size:14px}
 .side td.warn{color:var(--red);font-weight:600}
-.actions{margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap}
 button{font:inherit;font-size:14px;padding:6px 14px;border:1px solid var(--blue);background:#fff;color:var(--blue);border-radius:4px;cursor:pointer}
 button:hover{background:var(--input)}
 .help{margin-top:28px;font-size:14px;max-width:900px}
 .help h2{font-size:17px;margin:18px 0 6px}
 .help ol,.help ul{margin:0;padding-left:22px}
 .note{color:var(--blue);font-weight:600;margin-top:10px}
+.btns{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.btns button{width:100%}
 .chart-box{margin-top:16px;border:1px solid var(--line)}
 .chart-box .hd{background:var(--navy);color:#fff;font-weight:600;font-size:14px;padding:4px 10px;display:flex;justify-content:space-between;align-items:center}
 .chart-box .hd label{font-weight:400;font-size:13px;cursor:pointer}
@@ -83,10 +84,16 @@ footer a{color:var(--muted)}
       <tr><td class="lbl">ค่า b</td><td class="lock v" id="bAuto">–</td><td class="inp" id="bManCell"><input id="bMan" inputmode="decimal" autocomplete="off"></td></tr>
       <tr><td class="lbl">R²</td><td class="lock v big" id="rAuto">–</td><td class="lock v big" id="rMan">–</td></tr>
     </table>
-    <table class="summary">
-      <tr><th>จำนวนข้อมูลที่ใช้</th></tr>
-      <tr><td class="lock v big" id="nUsed" style="text-align:center">0</td></tr>
-    </table>
+    <div>
+      <table class="summary">
+        <tr><th>จำนวนข้อมูลที่ใช้</th></tr>
+        <tr><td class="lock v big" id="nUsed" style="text-align:center">0</td></tr>
+      </table>
+      <div class="btns">
+        <button id="example">ใส่ข้อมูลตัวอย่าง</button>
+        <button id="clear">ล้างข้อมูลทั้งหมด</button>
+      </div>
+    </div>
   </div>
   <div id="status"></div>
 
@@ -97,10 +104,6 @@ footer a{color:var(--muted)}
           <thead><tr><th>ลำดับ</th><th>ชื่อสถานี</th><th>x</th><th>y</th><th>ŷ (อัตโนมัติ)</th><th>ŷ (กรอกเอง)</th><th>สถานะ</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
-      </div>
-      <div class="actions">
-        <button id="clear">ล้างข้อมูลทั้งหมด</button>
-        <button id="example">ใส่ข้อมูลตัวอย่าง</button>
       </div>
     </div>
     <div class="side">
