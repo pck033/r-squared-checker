@@ -260,33 +260,44 @@ function calc() {
 }
 
 // paste a block from Excel (tab/newline separated) starting at the focused cell
-// Excel puts the full-precision value in x:num on its HTML clipboard; the plain text is only what the cell displays
-function gridFromHtml(html) {
-  if (!html || !/<td/i.test(html)) return null;
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const rows = [...doc.querySelectorAll("tr")].map(tr => [...tr.querySelectorAll("td,th")].map(td => {
-    const v = td.getAttribute("x:num");
-    if (v !== null && v !== "" && isFinite(v)) return String(parseFloat(Number(v).toPrecision(15)));  // drop float noise like 30.020000000000003
-    return td.textContent.replace(/\s+/g, " ").trim();
-  }));
-  return rows.length ? rows : null;
+// Paste from Excel. The plain text is the source of truth for the layout (always works, same as
+// "paste as plain text"); Excel's HTML clipboard is only used to upgrade a number to its full
+// precision (x:num) when the HTML grid lines up exactly with the text grid.
+function htmlNums(html) {
+  try {
+    if (!html || !/x:num/i.test(html)) return null;
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return [...doc.querySelectorAll("tr")].map(tr => [...tr.querySelectorAll("td,th")].map(td => {
+      const v = td.getAttribute("x:num");
+      return v !== null && v !== "" && isFinite(v) ? Number(v) : null;
+    }));
+  } catch (err) { return null; }
 }
+const clean = v => String(parseFloat(v.toPrecision(15)));   // drop float noise like 30.020000000000003
 tbody.addEventListener("paste", e => {
   const t = e.target; if (!t.dataset.r) return;
-  const cb = e.clipboardData || window.clipboardData;
-  let grid = gridFromHtml(cb.getData("text/html"));
-  if (!grid) {
-    const text = cb.getData("text");
-    if (!/[\t\n]/.test(text.trim())) return;
-    grid = text.replace(/\r/g, "").replace(/\n$/, "").split("\n").map(line => line.split("\t"));
+  const cb = e.clipboardData || window.clipboardData; if (!cb) return;
+  const text = (cb.getData("text/plain") || cb.getData("text") || "").replace(/\r/g, "").replace(/\n+$/, "");
+  if (text === "") return;
+  const grid = text.split("\n").map(line => line.split("\t"));
+  const hn = htmlNums(cb.getData("text/html"));
+  const aligned = hn && hn.length === grid.length && hn.every((row, i) => row.length === grid[i].length);
+  const value = (i, j) => {
+    const shown = grid[i][j].trim(), full = aligned ? hn[i][j] : null;
+    if (full === null || isNaN(num(shown))) return shown;
+    return Math.abs(full - num(shown)) <= Math.max(1, Math.abs(full)) * 0.5 ? clean(full) : shown;  // sanity: same number
+  };
+  if (grid.length === 1 && grid[0].length === 1) {          // single cell: only step in to restore precision
+    const v = value(0, 0); if (v === text.trim()) return;
+    e.preventDefault(); t.value = v; calc(); return;
   }
   e.preventDefault();
   const r0 = +t.dataset.r, c0 = +t.dataset.c;
   grid.forEach((line, i) => {
     const r = r0 + i; if (r >= N) return;
-    line.forEach((v, j) => {
+    line.forEach((_, j) => {
       const c = c0 + j; if (c > 2) return;
-      [cells[r].name, cells[r].x, cells[r].y][c].value = String(v).trim();
+      [cells[r].name, cells[r].x, cells[r].y][c].value = value(i, j);
     });
   });
   calc();
