@@ -260,17 +260,33 @@ function calc() {
 }
 
 // paste a block from Excel (tab/newline separated) starting at the focused cell
+// Excel puts the full-precision value in x:num on its HTML clipboard; the plain text is only what the cell displays
+function gridFromHtml(html) {
+  if (!html || !/<td/i.test(html)) return null;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const rows = [...doc.querySelectorAll("tr")].map(tr => [...tr.querySelectorAll("td,th")].map(td => {
+    const v = td.getAttribute("x:num");
+    if (v !== null && v !== "" && isFinite(v)) return String(parseFloat(Number(v).toPrecision(15)));  // drop float noise like 30.020000000000003
+    return td.textContent.replace(/\s+/g, " ").trim();
+  }));
+  return rows.length ? rows : null;
+}
 tbody.addEventListener("paste", e => {
   const t = e.target; if (!t.dataset.r) return;
-  const text = (e.clipboardData || window.clipboardData).getData("text");
-  if (!/[\t\n]/.test(text.trim())) return;
+  const cb = e.clipboardData || window.clipboardData;
+  let grid = gridFromHtml(cb.getData("text/html"));
+  if (!grid) {
+    const text = cb.getData("text");
+    if (!/[\t\n]/.test(text.trim())) return;
+    grid = text.replace(/\r/g, "").replace(/\n$/, "").split("\n").map(line => line.split("\t"));
+  }
   e.preventDefault();
   const r0 = +t.dataset.r, c0 = +t.dataset.c;
-  text.replace(/\r/g, "").replace(/\n$/, "").split("\n").forEach((line, i) => {
+  grid.forEach((line, i) => {
     const r = r0 + i; if (r >= N) return;
-    line.split("\t").forEach((v, j) => {
+    line.forEach((v, j) => {
       const c = c0 + j; if (c > 2) return;
-      [cells[r].name, cells[r].x, cells[r].y][c].value = v.trim();
+      [cells[r].name, cells[r].x, cells[r].y][c].value = String(v).trim();
     });
   });
   calc();
