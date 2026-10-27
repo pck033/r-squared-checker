@@ -25,7 +25,18 @@ th{background:var(--navy);color:#fff;font-weight:600;font-size:14px;text-align:c
 td.lock{background:var(--blue);color:#fff}
 td.inp{background:var(--input);padding:0}
 td.inp input{width:100%;height:27px;border:0;background:transparent;font:inherit;padding:0 8px;outline:none}
-td.inp input:focus{background:#fff;box-shadow:inset 0 0 0 2px var(--blue)}
+.summary td.inp input:focus{background:#fff;box-shadow:inset 0 0 0 2px var(--blue)}
+.grid{user-select:none}
+.grid td:focus,.grid input:focus{outline:none}
+.grid td.inp:not(.editing) input{cursor:cell;caret-color:transparent}
+.grid td.inp:not(.editing) input::selection{background:transparent}
+.grid td.lock[data-r]{cursor:cell}
+.grid td.idx{cursor:e-resize}
+.grid td.sel.inp{background:#9DC3E6}
+.grid td.sel.lock{background:#2E6DA4}
+.grid td.act{box-shadow:inset 0 0 0 2px var(--navy)}
+.grid td.lock.act{box-shadow:inset 0 0 0 2px #fff}
+.grid td.editing,.grid td.editing input{background:#fff!important;color:var(--text)!important}
 td.num,td.num input{text-align:right}
 td.bad,td.bad input{background:var(--red-bg)!important;color:var(--red)!important}
 .top{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
@@ -113,7 +124,7 @@ footer a{color:var(--muted)}
         <tr><td>y = ตัวแปรตาม (แกนตั้ง) เช่น ปริมาณน้ำท่า ปริมาณน้ำนอง ปริมาณตะกอน</td></tr>
         <tr><td>ŷ = ค่า y ที่คำนวณจากสมการ y = a·x<sup>b</sup> (ใช้ a, b อัตโนมัติ หรือ a, b ที่กรอกเอง)</td></tr>
         <tr><td class="warn">⚠ อย่ากรอก x กับ y สลับกัน เพราะค่า a, b และ R² จะเปลี่ยนไปทันที</td></tr>
-        <tr><td>วางข้อมูลจาก Excel ได้: คัดลอก 3 คอลัมน์ (ชื่อสถานี, x, y) แล้วคลิกช่องแรกที่ต้องการ กด Ctrl+V</td></tr>
+        <tr><td>ใช้ตารางได้เหมือน Excel: ลากเมาส์หรือ Shift+ลูกศร เพื่อเลือกหลายช่อง · Ctrl+C / Ctrl+X / Ctrl+V คัดลอก ตัด วาง · Delete ลบ · Ctrl+Z ย้อนกลับ · พิมพ์ทับได้ทันที หรือกด F2 / ดับเบิลคลิก เพื่อแก้ค่าเดิม</td></tr>
       </table>
       <div class="chart-box">
         <div class="hd"><span>กราฟ</span><label><input type="checkbox" id="logScale"> สเกล log</label></div>
@@ -167,11 +178,13 @@ const cells = [];  // cells[r] = {name,x,y,yA,yM,st, tdX, tdY, tdName}
 for (let r = 0; r < N; r++) {
   const tr = document.createElement("tr");
   tr.innerHTML =
-    `<td class="lock idx">${r + 1}</td>` +
+    `<td class="lock idx" data-row="${r}">${r + 1}</td>` +
     `<td class="inp name"><input data-r="${r}" data-c="0" autocomplete="off"></td>` +
     `<td class="inp num xy"><input data-r="${r}" data-c="1" inputmode="decimal" autocomplete="off"></td>` +
     `<td class="inp num xy"><input data-r="${r}" data-c="2" inputmode="decimal" autocomplete="off"></td>` +
-    `<td class="lock yh"></td><td class="lock yh"></td><td class="lock st"></td>`;
+    `<td class="lock yh" data-r="${r}" data-c="3" tabindex="-1"></td>` +
+    `<td class="lock yh" data-r="${r}" data-c="4" tabindex="-1"></td>` +
+    `<td class="lock st" data-r="${r}" data-c="5" tabindex="-1"></td>`;
   tbody.appendChild(tr);
   const td = tr.children, inp = tr.querySelectorAll("input");
   cells.push({name: inp[0], x: inp[1], y: inp[2], tdName: td[1], tdX: td[2], tdY: td[3], yA: td[4], yM: td[5], st: td[6]});
@@ -274,8 +287,137 @@ function htmlNums(html) {
   } catch (err) { return null; }
 }
 const clean = v => String(parseFloat(v.toPrecision(15)));   // drop float noise like 30.020000000000003
-tbody.addEventListener("paste", e => {
-  const t = e.target; if (!t.dataset.r) return;
+// ---- Excel-like grid: selection, navigation, editing, copy / cut / paste, delete, undo ----
+const COLS = 6, EDIT = 3;      // columns 0 name, 1 x, 2 y are editable · 3 ŷ auto, 4 ŷ manual, 5 status are read-only
+const el = (r, c) => c < EDIT ? [cells[r].name, cells[r].x, cells[r].y][c] : [cells[r].yA, cells[r].yM, cells[r].st][c - EDIT];
+const tdOf = (r, c) => c < EDIT ? el(r, c).parentElement : el(r, c);
+const getV = (r, c) => c < EDIT ? el(r, c).value : el(r, c).textContent;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+let anc = {r: 0, c: 0}, act = {r: 0, c: 0}, editing = null, painted = [], dragging = false;
+const range = () => ({r0: Math.min(anc.r, act.r), r1: Math.max(anc.r, act.r), c0: Math.min(anc.c, act.c), c1: Math.max(anc.c, act.c)});
+
+// undo / redo keep snapshots of the editable cells
+const undo = [], redo = [];
+const snap = () => cells.map(c => [c.name.value, c.x.value, c.y.value]);
+const restore = st => { st.forEach((row, r) => row.forEach((v, c) => { el(r, c).value = v; })); calc(); };
+function record(st) { undo.push(st || snap()); if (undo.length > 100) undo.shift(); redo.length = 0; }
+function doUndo() { if (!undo.length) return; redo.push(snap()); restore(undo.pop()); }
+function doRedo() { if (!redo.length) return; undo.push(snap()); restore(redo.pop()); }
+
+function paint() {
+  painted.forEach(t => t.classList.remove("sel", "act")); painted = [];
+  const R = range();
+  for (let r = R.r0; r <= R.r1; r++) for (let c = R.c0; c <= R.c1; c++) { const t = tdOf(r, c); t.classList.add("sel"); painted.push(t); }
+  const a = tdOf(act.r, act.c); a.classList.add("act"); painted.push(a);
+}
+let nav = null;                              // value + snapshot of the focused cell before any typing
+function focusAct() {
+  const e = el(act.r, act.c);
+  e.focus({preventScroll: true}); tdOf(act.r, act.c).scrollIntoView({block: "nearest", inline: "nearest"});
+  if (act.c < EDIT && !editing) { e.select(); nav = {r: act.r, c: act.c, orig: e.value, snap: snap()}; }
+}
+function select(r, c, extend) {
+  commit();
+  act = {r: clamp(r, 0, N - 1), c: clamp(c, 0, COLS - 1)};
+  if (!extend) anc = {...act};
+  paint(); focusAct();
+}
+function startEdit(mode, clear) {           // mode "enter": started by typing (arrows leave the cell) · "edit": F2 / double-click
+  if (act.c >= EDIT) return false;
+  const i = el(act.r, act.c);
+  editing = {r: act.r, c: act.c, mode, orig: i.value, snap: snap()};
+  anc = {...act}; paint();
+  i.parentElement.classList.add("editing");
+  if (clear) i.value = ""; else { const n = i.value.length; i.setSelectionRange(n, n); }
+  i.focus(); return true;
+}
+function endEdit() { el(editing.r, editing.c).parentElement.classList.remove("editing"); editing = null; }
+function commit() {
+  if (!editing) return;
+  if (el(editing.r, editing.c).value !== editing.orig) record(editing.snap);
+  endEdit(); calc();
+}
+function cancel() { el(editing.r, editing.c).value = editing.orig; endEdit(); calc(); }
+function clearRange() {
+  const R = range(); record();
+  for (let r = R.r0; r <= R.r1; r++) for (let c = R.c0; c <= Math.min(R.c1, EDIT - 1); c++) el(r, c).value = "";
+  calc();
+}
+const tsv = () => { const R = range(), out = [];
+  for (let r = R.r0; r <= R.r1; r++) { const row = []; for (let c = R.c0; c <= R.c1; c++) row.push(getV(r, c)); out.push(row.join("\t")); }
+  return out.join("\r\n") + "\r\n"; };
+const DIR = {ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1]};
+const move = (dr, dc) => select(act.r + dr, act.c + dc, false);
+
+tbody.addEventListener("keydown", e => {
+  const k = e.key, ctrl = e.ctrlKey || e.metaKey;
+  if (editing) {
+    if (k === "Escape") { e.preventDefault(); cancel(); focusAct(); }
+    else if (k === "Enter") { e.preventDefault(); move(e.shiftKey ? -1 : 1, 0); }
+    else if (k === "Tab") { e.preventDefault(); move(0, e.shiftKey ? -1 : 1); }
+    else if (DIR[k] && (k === "ArrowUp" || k === "ArrowDown" || editing.mode === "enter")) { e.preventDefault(); move(...DIR[k]); }
+    return;                                  // anything else is ordinary typing inside the cell
+  }
+  if (ctrl && /^[zZ]$/.test(k)) { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
+  if (ctrl && /^[yY]$/.test(k)) { e.preventDefault(); doRedo(); return; }
+  if (ctrl && /^[aA]$/.test(k)) { e.preventDefault(); anc = {r: 0, c: 0}; act = {r: N - 1, c: COLS - 1}; paint(); return; }
+  if (ctrl || e.altKey) return;              // Ctrl+C / X / V go to the copy / cut / paste events below
+  if (DIR[k]) {
+    e.preventDefault();
+    if (e.shiftKey) { act = {r: clamp(act.r + DIR[k][0], 0, N - 1), c: clamp(act.c + DIR[k][1], 0, COLS - 1)}; paint(); focusAct(); }
+    else move(...DIR[k]);
+  }
+  else if (k === "Enter") { e.preventDefault(); move(e.shiftKey ? -1 : 1, 0); }
+  else if (k === "Tab") { e.preventDefault(); move(0, e.shiftKey ? -1 : 1); }
+  else if (k === "F2") { e.preventDefault(); startEdit("edit", false); }
+  else if (k === "Delete" || k === "Backspace") { e.preventDefault(); clearRange(); }
+  else if (k === "Escape") { anc = {...act}; paint(); }
+  else if (k.length === 1) { if (!startEdit("enter", true)) e.preventDefault(); }   // the browser then types the key into the cell
+});
+
+tbody.addEventListener("pointerdown", e => {
+  const rowHead = e.target.closest("[data-row]");
+  if (rowHead) {                             // row number: select the whole row
+    e.preventDefault(); const r = +rowHead.dataset.row;
+    commit(); if (!e.shiftKey) anc = {r, c: 0}; act = {r, c: COLS - 1}; paint(); focusAct(); dragging = "row"; return;
+  }
+  const t = e.target.closest("[data-r]"); if (!t) return;
+  const r = +t.dataset.r, c = +t.dataset.c;
+  if (editing && editing.r === r && editing.c === c) return;     // click inside the cell being edited
+  if (e.pointerType === "touch") { select(r, c, false); startEdit("edit", false); return; }   // tablets: tap to edit
+  e.preventDefault();
+  select(r, c, e.shiftKey); dragging = "cell";
+});
+tbody.addEventListener("pointerover", e => {
+  if (!dragging) return;
+  if (dragging === "row") { const h = e.target.closest("[data-row], [data-r]"); if (!h) return; act = {r: +(h.dataset.row ?? h.dataset.r), c: COLS - 1}; paint(); return; }
+  const t = e.target.closest("[data-r]"); if (!t) return;
+  act = {r: +t.dataset.r, c: +t.dataset.c}; paint();
+});
+document.addEventListener("pointerup", () => { if (dragging) { dragging = false; focusAct(); } });
+tbody.addEventListener("dblclick", e => {
+  const t = e.target.closest("[data-r]"); if (!t || +t.dataset.c >= EDIT) return;
+  if (!editing) { select(+t.dataset.r, +t.dataset.c, false); startEdit("edit", false); }
+});
+tbody.addEventListener("input", e => {
+  const t = e.target;
+  if (editing || !nav || !t.dataset.r || +t.dataset.r !== nav.r || +t.dataset.c !== nav.c) return;
+  editing = {r: nav.r, c: nav.c, mode: "enter", orig: nav.orig, snap: nav.snap};
+  t.parentElement.classList.add("editing");
+});
+tbody.addEventListener("focusout", e => { if (editing && !tbody.contains(e.relatedTarget)) commit(); });
+
+const inGrid = () => tbody.contains(document.activeElement);
+document.addEventListener("copy", e => {
+  if (!inGrid() || editing) return;          // while editing, copy the selected text as usual
+  e.preventDefault(); e.clipboardData.setData("text/plain", tsv());
+});
+document.addEventListener("cut", e => {
+  if (!inGrid() || editing) return;
+  e.preventDefault(); e.clipboardData.setData("text/plain", tsv()); clearRange();
+});
+document.addEventListener("paste", e => {
+  if (!inGrid()) return;
   const cb = e.clipboardData || window.clipboardData; if (!cb) return;
   const text = (cb.getData("text/plain") || cb.getData("text") || "").replace(/\r/g, "").replace(/\n+$/, "");
   if (text === "") return;
@@ -287,45 +429,38 @@ tbody.addEventListener("paste", e => {
     if (full === null || isNaN(num(shown))) return shown;
     return Math.abs(full - num(shown)) <= Math.max(1, Math.abs(full)) * 0.5 ? clean(full) : shown;  // sanity: same number
   };
-  if (grid.length === 1 && grid[0].length === 1) {          // single cell: only step in to restore precision
-    const v = value(0, 0); if (v === text.trim()) return;
-    e.preventDefault(); t.value = v; calc(); return;
+  const single = grid.length === 1 && grid[0].length === 1;
+  if (editing && single) {                   // typing mode: insert at the caret
+    e.preventDefault(); const i = el(editing.r, editing.c);
+    i.setRangeText(value(0, 0), i.selectionStart, i.selectionEnd, "end"); calc(); return;
   }
-  e.preventDefault();
-  const r0 = +t.dataset.r, c0 = +t.dataset.c;
-  grid.forEach((line, i) => {
-    const r = r0 + i; if (r >= N) return;
-    line.forEach((_, j) => {
-      const c = c0 + j; if (c > 2) return;
-      [cells[r].name, cells[r].x, cells[r].y][c].value = value(i, j);
-    });
-  });
-  calc();
-});
-tbody.addEventListener("keydown", e => {
-  const t = e.target; if (!t.dataset.r) return;
-  let step;
-  if (e.key === "Enter") step = e.shiftKey ? -1 : 1;
-  else if (e.key === "ArrowDown") step = 1;
-  else if (e.key === "ArrowUp") step = -1;
-  else return;
-  e.preventDefault();
-  const r = +t.dataset.r + step;
-  if (r >= 0 && r < N) [cells[r].name, cells[r].x, cells[r].y][+t.dataset.c].focus();
+  e.preventDefault(); commit(); record();
+  const R = range();
+  if (single) {                              // one value into a selected block: fill every cell (like Excel)
+    for (let r = R.r0; r <= R.r1; r++) for (let c = R.c0; c <= Math.min(R.c1, EDIT - 1); c++) el(r, c).value = value(0, 0);
+  } else {
+    grid.forEach((line, i) => line.forEach((_, j) => {
+      const r = R.r0 + i, c = R.c0 + j; if (r < N && c < EDIT) el(r, c).value = value(i, j);
+    }));
+    anc = {r: R.r0, c: R.c0};
+    act = {r: Math.min(N - 1, R.r0 + grid.length - 1), c: Math.min(COLS - 1, R.c0 + Math.max(...grid.map(l => l.length)) - 1)};
+  }
+  calc(); paint();
 });
 // Enter / ArrowDown in the manual a box moves down to b; Shift+Enter / ArrowUp moves back up
 $("aMan").addEventListener("keydown", e => { if ((e.key === "Enter" && !e.shiftKey) || e.key === "ArrowDown") { e.preventDefault(); $("bMan").focus(); } });
 $("bMan").addEventListener("keydown", e => { if ((e.key === "Enter" && e.shiftKey) || e.key === "ArrowUp") { e.preventDefault(); $("aMan").focus(); } });
 document.addEventListener("input", calc);
 
-function fill(data) {
+function fill(data, undoable) {
+  commit(); if (undoable) record();
   cells.forEach(c => { c.name.value = c.x.value = c.y.value = ""; });
   data.forEach(([x, y], i) => { cells[i].name.value = `ตัวอย่าง ${i + 1}`; cells[i].x.value = x; cells[i].y.value = y; });
   $("aMan").value = $("bMan").value = "";
   calc();
 }
-$("clear").onclick = () => { if (confirm("ล้างข้อมูลทั้งหมด?")) fill([]); };
-$("example").onclick = () => fill(EXAMPLE);
+$("clear").onclick = () => { if (confirm("ล้างข้อมูลทั้งหมด?")) fill([], true); };
+$("example").onclick = () => fill(EXAMPLE, true);
 // ---- chart ----
 let chart = null, lastArgs = [[], null, null];
 const C_PT = "#404040", C_AUTO = "#2E75B6", C_MAN = "#C55A11";
@@ -389,6 +524,7 @@ $("logScale").addEventListener("change", () => drawChart(...lastArgs));
 })();
 
 fill(EXAMPLE);
+paint();
 </script>
 </body>
 </html>
