@@ -303,14 +303,19 @@ tbody.addEventListener("paste", e => {
   calc();
 });
 tbody.addEventListener("keydown", e => {
-  const t = e.target; if (!t.dataset.r || e.key !== "Enter") return;
+  const t = e.target; if (!t.dataset.r) return;
+  let step;
+  if (e.key === "Enter") step = e.shiftKey ? -1 : 1;
+  else if (e.key === "ArrowDown") step = 1;
+  else if (e.key === "ArrowUp") step = -1;
+  else return;
   e.preventDefault();
-  const r = +t.dataset.r + (e.shiftKey ? -1 : 1);
+  const r = +t.dataset.r + step;
   if (r >= 0 && r < N) [cells[r].name, cells[r].x, cells[r].y][+t.dataset.c].focus();
 });
-// Enter in the manual a box moves down to b (Shift+Enter moves back up)
-$("aMan").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("bMan").focus(); } });
-$("bMan").addEventListener("keydown", e => { if (e.key === "Enter" && e.shiftKey) { e.preventDefault(); $("aMan").focus(); } });
+// Enter / ArrowDown in the manual a box moves down to b; Shift+Enter / ArrowUp moves back up
+$("aMan").addEventListener("keydown", e => { if ((e.key === "Enter" && !e.shiftKey) || e.key === "ArrowDown") { e.preventDefault(); $("bMan").focus(); } });
+$("bMan").addEventListener("keydown", e => { if ((e.key === "Enter" && e.shiftKey) || e.key === "ArrowUp") { e.preventDefault(); $("aMan").focus(); } });
 document.addEventListener("input", calc);
 
 function fill(data) {
