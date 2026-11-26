@@ -473,6 +473,36 @@ function curve(a, b, xmin, xmax, log) {
   }
   return out;
 }
+// writes each station's name beside its data point; a label that would overlap another is moved
+// to a free side, or left out when every side is taken (its name still shows on hover)
+const stationLabels = {
+  id: "stationLabels",
+  afterDatasetsDraw(ch) {
+    const meta = ch.getDatasetMeta(0); if (!meta || meta.hidden) return;
+    const {ctx, chartArea: A} = ch, H = 14, placed = [];
+    const hit = b => b.x1 < A.left || b.x2 > ch.width - 2 || b.y1 < 2 || b.y2 > A.bottom ||   // may run into the padding around the plot
+      placed.some(o => b.x1 < o.x2 && b.x2 > o.x1 && b.y1 < o.y2 && b.y2 > o.y1) ||
+      meta.data.some(q => q.x > b.x1 - 4 && q.x < b.x2 + 4 && q.y > b.y1 - 4 && q.y < b.y2 + 4);   // keep clear of other points
+    ctx.save();
+    ctx.font = '12px "Sarabun", Tahoma, sans-serif'; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    meta.data.map((pt, i) => ({pt, raw: ch.data.datasets[0].data[i]}))
+      .sort((a, b) => a.pt.x - b.pt.x)
+      .forEach(({pt, raw}) => {
+        const name = cells[raw.r].name.value.trim(); if (!name) return;
+        const w = ctx.measureText(name).width;
+        const spots = [[8, -9], [8, 9], [-8 - w, -9], [-8 - w, 9], [-w / 2, -16], [-w / 2, 16]];
+        for (const [dx, dy] of spots) {
+          const b = {x1: pt.x + dx, x2: pt.x + dx + w, y1: pt.y + dy - H / 2, y2: pt.y + dy + H / 2};
+          if (hit(b)) continue;
+          placed.push(b);
+          ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 3; ctx.strokeText(name, b.x1, pt.y + dy);
+          ctx.fillStyle = "#1a1a1a"; ctx.fillText(name, b.x1, pt.y + dy);
+          return;
+        }
+      });
+    ctx.restore();
+  }
+};
 function drawChart(pts, auto, man) {
   lastArgs = [pts, auto, man];
   if (typeof Chart === "undefined") return;
@@ -491,9 +521,10 @@ function drawChart(pts, auto, man) {
                grid: {color: "#eeeeee"}, ticks: {color: "#595959"}, border: {color: "#cccccc"}});
   if (chart) { chart.data.datasets = ds; chart.options.scales.x = scale("x"); chart.options.scales.y = scale("y"); chart.update("none"); return; }
   chart = new Chart($("chart"), {
+    plugins: [stationLabels],
     data: {datasets: ds},
     options: {
-      maintainAspectRatio: false, animation: false, parsing: true,
+      maintainAspectRatio: false, animation: false, parsing: true, layout: {padding: {top: 16, right: 12}},
       scales: {x: scale("x"), y: scale("y")},
       interaction: {mode: "nearest", intersect: false},
       plugins: {
