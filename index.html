@@ -37,6 +37,12 @@ td.inp input{width:100%;height:27px;border:0;background:transparent;font:inherit
 .grid td.act{box-shadow:inset 0 0 0 2px var(--navy)}
 .grid td.lock.act{box-shadow:inset 0 0 0 2px #fff}
 .grid td.editing,.grid td.editing input{background:#fff!important;color:var(--text)!important}
+.cmenu{position:fixed;z-index:20;background:#fff;border:1px solid var(--line);box-shadow:0 4px 14px rgba(15,36,62,.18);padding:4px 0;min-width:190px;font-size:14px}
+.cmenu[hidden]{display:none}
+.cmenu button{display:flex;justify-content:space-between;gap:24px;width:100%;border:0;border-radius:0;background:none;color:var(--text);padding:6px 14px;text-align:left}
+.cmenu button:hover{background:var(--input)}
+.cmenu button span{color:var(--muted);font-size:12px}
+.cmenu hr{border:0;border-top:1px solid #e3e3e3;margin:4px 0}
 td.num,td.num input{text-align:right}
 td.bad,td.bad input{background:var(--red-bg)!important;color:var(--red)!important}
 .top{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
@@ -124,7 +130,7 @@ footer a{color:var(--muted)}
         <tr><td>y = ตัวแปรตาม (แกนตั้ง) เช่น ปริมาณน้ำท่า ปริมาณน้ำนอง ปริมาณตะกอน</td></tr>
         <tr><td>ŷ = ค่า y ที่คำนวณจากสมการ y = a·x<sup>b</sup> (ใช้ a, b อัตโนมัติ หรือ a, b ที่กรอกเอง)</td></tr>
         <tr><td class="warn">⚠ อย่ากรอก x กับ y สลับกัน เพราะค่า a, b และ R² จะเปลี่ยนไปทันที</td></tr>
-        <tr><td>ใช้ตารางได้เหมือน Excel: ลากเมาส์หรือ Shift+ลูกศร เพื่อเลือกหลายช่อง · Ctrl+C / Ctrl+X / Ctrl+V คัดลอก ตัด วาง · Delete ลบ · Ctrl+Z ย้อนกลับ · พิมพ์ทับได้ทันที หรือกด F2 / ดับเบิลคลิก เพื่อแก้ค่าเดิม</td></tr>
+        <tr><td>ใช้ตารางได้เหมือน Excel: ลากเมาส์หรือ Shift+ลูกศร เพื่อเลือกหลายช่อง · Ctrl+C / Ctrl+X / Ctrl+V หรือคลิกขวา เพื่อคัดลอก ตัด วาง · Delete ลบ · Ctrl+Z ย้อนกลับ · พิมพ์ทับได้ทันที หรือกด F2 / ดับเบิลคลิก เพื่อแก้ค่าเดิม</td></tr>
       </table>
       <div class="chart-box">
         <div class="hd"><span>กราฟ</span><label><input type="checkbox" id="logScale"> สเกล log</label></div>
@@ -156,6 +162,15 @@ footer a{color:var(--muted)}
       <li>ถ้ามีข้อมูลผิดแม้แต่แถวเดียว จะไม่คำนวณ a, b, R² และ ŷ ทั้งหมด (รวมฝั่งกรอกเอง) จนกว่าจะแก้ให้ถูกต้องทุกแถว</li>
       <li>ข้อมูลทั้งหมดคำนวณในเบราว์เซอร์ของคุณ ไม่มีการส่งข้อมูลออกไปที่ใด</li>
     </ul>
+  </div>
+
+  <div class="cmenu" id="cmenu" role="menu" hidden>
+    <button data-act="copy" role="menuitem">คัดลอก<span>Ctrl+C</span></button>
+    <button data-act="cut" role="menuitem">ตัด<span>Ctrl+X</span></button>
+    <button data-act="paste" role="menuitem">วาง<span>Ctrl+V</span></button>
+    <hr>
+    <button data-act="clear" role="menuitem">ลบ<span>Delete</span></button>
+    <button data-act="undo" role="menuitem">ย้อนกลับ<span>Ctrl+Z</span></button>
   </div>
 
   <footer>
@@ -376,6 +391,12 @@ tbody.addEventListener("keydown", e => {
 });
 
 tbody.addEventListener("pointerdown", e => {
+  if (e.button === 2) {                      // right-click: keep the selection if the click is inside it
+    const t = e.target.closest("[data-r]"), R = range();
+    if (t && +t.dataset.r >= R.r0 && +t.dataset.r <= R.r1 && +t.dataset.c >= R.c0 && +t.dataset.c <= R.c1) { e.preventDefault(); focusAct(); return; }
+    const h = e.target.closest("[data-row]");
+    if (h && R.c0 === 0 && R.c1 === COLS - 1 && +h.dataset.row >= R.r0 && +h.dataset.row <= R.r1) { e.preventDefault(); focusAct(); return; }
+  }
   const rowHead = e.target.closest("[data-row]");
   if (rowHead) {                             // row number: select the whole row
     e.preventDefault(); const r = +rowHead.dataset.row;
@@ -416,13 +437,12 @@ document.addEventListener("cut", e => {
   if (!inGrid() || editing) return;
   e.preventDefault(); e.clipboardData.setData("text/plain", tsv()); clearRange();
 });
-document.addEventListener("paste", e => {
-  if (!inGrid()) return;
-  const cb = e.clipboardData || window.clipboardData; if (!cb) return;
-  const text = (cb.getData("text/plain") || cb.getData("text") || "").replace(/\r/g, "").replace(/\n+$/, "");
-  if (text === "") return;
+// writes clipboard text into the grid at the selection; returns false if nothing was pasted
+function pasteInto(rawText, html, ev) {
+  const text = (rawText || "").replace(/\r/g, "").replace(/\n+$/, "");
+  if (text === "") return false;
   const grid = text.split("\n").map(line => line.split("\t"));
-  const hn = htmlNums(cb.getData("text/html"));
+  const hn = htmlNums(html);
   const aligned = hn && hn.length === grid.length && hn.every((row, i) => row.length === grid[i].length);
   const value = (i, j) => {
     const shown = grid[i][j].trim(), full = aligned ? hn[i][j] : null;
@@ -431,10 +451,11 @@ document.addEventListener("paste", e => {
   };
   const single = grid.length === 1 && grid[0].length === 1;
   if (editing && single) {                   // typing mode: insert at the caret
-    e.preventDefault(); const i = el(editing.r, editing.c);
-    i.setRangeText(value(0, 0), i.selectionStart, i.selectionEnd, "end"); calc(); return;
+    if (ev) ev.preventDefault(); const i = el(editing.r, editing.c);
+    i.setRangeText(value(0, 0), i.selectionStart, i.selectionEnd, "end"); calc(); return true;
   }
-  e.preventDefault(); commit(); record();
+  if (ev) ev.preventDefault();
+  commit(); record();
   const R = range();
   if (single) {                              // one value into a selected block: fill every cell (like Excel)
     for (let r = R.r0; r <= R.r1; r++) for (let c = R.c0; c <= Math.min(R.c1, EDIT - 1); c++) el(r, c).value = value(0, 0);
@@ -445,8 +466,53 @@ document.addEventListener("paste", e => {
     anc = {r: R.r0, c: R.c0};
     act = {r: Math.min(N - 1, R.r0 + grid.length - 1), c: Math.min(COLS - 1, R.c0 + Math.max(...grid.map(l => l.length)) - 1)};
   }
-  calc(); paint();
+  calc(); paint(); return true;
+}
+document.addEventListener("paste", e => {
+  if (!inGrid()) return;
+  const cb = e.clipboardData || window.clipboardData; if (!cb) return;
+  pasteInto(cb.getData("text/plain") || cb.getData("text"), cb.getData("text/html"), e);
 });
+
+// ---- right-click menu: copy / cut / paste / delete / undo with the mouse ----
+const cmenu = $("cmenu");
+const hideMenu = () => { cmenu.hidden = true; };
+tbody.addEventListener("contextmenu", e => {
+  const t = e.target.closest("[data-r], [data-row]"); if (!t) return;
+  e.preventDefault(); commit();
+  cmenu.hidden = false;
+  const w = cmenu.offsetWidth, h = cmenu.offsetHeight;
+  cmenu.style.left = Math.min(e.clientX, innerWidth - w - 4) + "px";
+  cmenu.style.top = Math.min(e.clientY, innerHeight - h - 4) + "px";
+});
+cmenu.addEventListener("pointerdown", e => e.preventDefault());   // keep the grid focused
+cmenu.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  hideMenu(); focusAct();
+  const a = b.dataset.act;
+  try {
+    if (a === "copy" || a === "cut") { await navigator.clipboard.writeText(tsv()); if (a === "cut") clearRange(); }
+    else if (a === "paste") {
+      let text = "", html = "";
+      if (navigator.clipboard.read) {
+        for (const item of await navigator.clipboard.read()) {
+          if (item.types.includes("text/plain")) text = await (await item.getType("text/plain")).text();
+          if (item.types.includes("text/html")) html = await (await item.getType("text/html")).text();
+        }
+      } else text = await navigator.clipboard.readText();
+      pasteInto(text, html, null);
+    }
+    else if (a === "clear") clearRange();
+    else if (a === "undo") doUndo();
+  } catch (err) {
+    alert("เบราว์เซอร์ไม่อนุญาตให้เข้าถึงคลิปบอร์ด กด Ctrl+C / Ctrl+X / Ctrl+V แทนได้");
+  }
+});
+document.addEventListener("pointerdown", e => { if (!cmenu.hidden && !cmenu.contains(e.target)) hideMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") hideMenu(); });
+window.addEventListener("scroll", hideMenu, true);
+window.addEventListener("blur", hideMenu);
+
 // Enter / ArrowDown in the manual a box moves down to b; Shift+Enter / ArrowUp moves back up
 $("aMan").addEventListener("keydown", e => { if ((e.key === "Enter" && !e.shiftKey) || e.key === "ArrowDown") { e.preventDefault(); $("bMan").focus(); } });
 $("bMan").addEventListener("keydown", e => { if ((e.key === "Enter" && e.shiftKey) || e.key === "ArrowUp") { e.preventDefault(); $("aMan").focus(); } });
